@@ -128,7 +128,14 @@ if st.button("🚀 Generate Electricity Forecast", type="primary", use_container
         lower, upper = daily_consumption * 0.85, daily_consumption * 1.15
     preds = np.clip(preds, lower, upper)
 
-    dates = pd.date_range(pd.Timestamp.today().normalize() + pd.Timedelta(days=1), periods=30, freq="D")
+    # Build the real calendar days of the selected month
+    month_number = month_names.index(selected_month) + 1
+    month_start = pd.Timestamp(year=2026, month=month_number, day=1)
+    dates = pd.date_range(month_start, month_start + pd.offsets.MonthEnd(0), freq="D")
+    n_days = len(dates)
+
+    # Stretch the 30 day forecast to 28, 29, 30 or 31 days
+    preds = np.interp(np.linspace(0, 29, n_days), np.arange(30), preds)
 
     daily_bill = preds * unit_cost
     total_consumption = preds.sum()
@@ -143,7 +150,7 @@ if st.button("🚀 Generate Electricity Forecast", type="primary", use_container
     })
 
     st.divider()
-    st.subheader("30 Day Electricity Forecast")
+    st.subheader(f"{selected_month} 2026 Electricity Forecast")
     m1, m2, m3 = st.columns(3)
     m1.metric("Total Consumption", f"{total_consumption:,.2f} kWh")
     m2.metric("Average Daily Consumption", f"{average_consumption:,.2f} kWh")
@@ -152,6 +159,13 @@ if st.button("🚀 Generate Electricity Forecast", type="primary", use_container
     st.divider()
     st.subheader("Daily Forecast")
     st.dataframe(forecast_df, use_container_width=True, hide_index=True)
+
+    st.divider()
+    st.subheader("Daily Electricity Consumption Forecast")
+    st.line_chart(forecast_df.set_index("Date")["Predicted Consumption (kWh)"])
+
+    st.subheader("Daily Electricity Bill")
+    st.line_chart(forecast_df.set_index("Date")["Estimated Daily Bill (₹)"])
 '''
 
 
